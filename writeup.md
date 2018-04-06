@@ -41,7 +41,7 @@ You're reading it!
 #### 1. Run the functions provided in the notebook on test images (first with the test data provided, next on data you have recorded). Add/modify functions to allow for color selection of obstacles and rock samples.
 `perspect_transform()` function can change perspect view of camera image. It's shown below.  
 
-![alt text][image1]  
+![alt text][image1]
 
 `yellow_select()` function can select yellow rock in the image.  
 
