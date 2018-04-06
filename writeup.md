@@ -26,6 +26,9 @@
 [image3]: ./output/color_path.jpg
 [image4]: ./output/color_obs.jpg
 [image5]: ./output/arrow.jpg
+[image6]: ./output/autonomous.png
+[image7]: ./output/auto2.jpg
+[image8]: ./rover_setting.png
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/916/view) Points
 ### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
@@ -64,6 +67,7 @@ All codes can be found in notebook.
 ### Autonomous Navigation and Mapping
 
 #### 1. Fill in the `perception_step()` (at the bottom of the `perception.py` script) and `decision_step()` (in `decision.py`) functions in the autonomous mapping scripts and an explanation is provided in the writeup of how and why these functions were modified as they were.
+Here is `perception_step()` and `decision_step()` functions.  
 `def perception_step(Rover):
     # Perform perception steps to update Rover()
     # TODO: 
@@ -127,14 +131,116 @@ All codes can be found in notebook.
     
     return Rover`
 
+`def decision_step(Rover):
+
+    # Implement conditionals to decide what to do given perception data
+    # Here you're all set up with some basic functionality but you'll need to
+    # improve on this decision tree to do a good job of navigating autonomously!
+
+    # Check if we have vision data to make decisions with
+    if Rover.nav_angles is not None:
+        # Check for Rover.mode status
+        if Rover.mode == 'forward': 
+            # Check the extent of navigable terrain
+            if len(Rover.nav_angles) >= Rover.stop_forward: # and np.abs(np.mean(Rover.nav_angles * 180/np.pi))<40:
+                print("+++++++++++++forward "+str(np.mean(np.abs(Rover.nav_angles) * 180/np.pi)))
+                # If mode is forward, navigable terrain looks good 
+                # and velocity is below max, then throttle 
+                if Rover.vel < Rover.max_vel:
+                    # Set throttle value to throttle setting
+                    Rover.throttle = Rover.throttle_set
+                else: # Else coast
+                    Rover.throttle = 0
+                Rover.brake = 0
+                # rock
+                #if len(Rover.rock_angles)>0: # and np.min(Rover.rock_dists)<100:
+                #    print("++++++++++find rock")
+                #    if np.min(Rover.rock_dists)<10:
+                #        print("++++++++++start pick rock")
+                #        Rover.throttle = 0
+                #        Rover.brake = Rover.brake_set
+                #        Rover.steer = 0
+                #    else:
+                #        print("++++++++++move to rock")
+                #        if Rover.vel > 0.5:
+                #            Rover.throttle = -Rover.throttle_set
+                #        elif Rover.vel < 0.5:
+                #            Rover.throttle = Rover.throttle_set
+                #            print("----------haha")
+                #        else:
+                #           Rover.throttle = 0
+                #        Rover.steer = np.clip(np.mean(Rover.rock_angles * 180/np.pi), -15, 15)
+                #else:
+                Rover.steer = np.clip(np.mean(Rover.nav_angles * 180/np.pi), -15, 15)
+            # If there's a lack of navigable terrain pixels then go to 'stop' mode
+            #elif len(Rover.nav_angles) < Rover.stop_forward:
+            else:
+                # Set mode to "stop" and hit the brakes!
+                Rover.throttle = 0
+                # Set brake to stored brake value
+                Rover.brake = Rover.brake_set
+                Rover.steer = 0
+                Rover.mode = 'stop'
+
+        # If we're already in "stop" mode then make different decisions
+        elif Rover.mode == 'stop':
+            print("+++++++++++++stop")
+            # If we're in stop mode but still moving keep braking
+            if Rover.vel > 0.2:
+                Rover.throttle = 0
+                Rover.brake = Rover.brake_set
+                Rover.steer = 0
+            # If we're not moving (vel < 0.2) then do something else
+            elif Rover.vel <= 0.2:
+                # Now we're stopped and we have vision data to see if there's a path forward
+                if len(Rover.nav_angles) < Rover.go_forward or np.abs(np.mean(Rover.nav_angles * 180/np.pi))>30:
+                    print("+++++++++++++stop and rotate")
+                    Rover.throttle = 0
+                    # Release the brake to allow turning
+                    Rover.brake = 0
+                    # Turn range is +/- 15 degrees, when stopped the next line will induce 4-wheel turning
+                    Rover.steer = -15 # Could be more clever here about which way to turn
+                # If we're stopped but see sufficient navigable terrain in front then go!
+                #if len(Rover.nav_angles) >= Rover.go_forward:
+                else:
+                    print("+++++++++++++stop and forward")
+                    # Set throttle back to stored value
+                    Rover.throttle = Rover.throttle_set
+                    # Release the brake
+                    Rover.brake = 0
+                    # Set steer to mean angle
+                    Rover.steer = np.clip(np.mean(Rover.nav_angles * 180/np.pi), -15, 15)
+                    Rover.mode = 'forward'
+    # Just to make the rover do something 
+    # even if no modifications have been made to the code
+    else:
+        Rover.throttle = 0
+        Rover.steer = -15
+        Rover.brake = 0
+    
+    
+    
+
+    # If in a state where want to pickup a rock send pickup command
+    if Rover.near_sample and Rover.vel == 0 and not Rover.picking_up:
+        Rover.send_pickup = True
+    
+    return Rover`
+
 #### 2. Launching in autonomous mode your rover can navigate and map autonomously.  Explain your results and how you might improve them in your writeup.  
 
-**Note: running the simulator with different choices of resolution and graphics quality may produce different results, particularly on different machines!  Make a note of your simulator settings (resolution and graphics quality set on launch) and frames per second (FPS output to terminal by `drive_rover.py`) in your writeup when you submit the project so your reviewer can reproduce your results.**
+**Note: running the simulator with different choices of resolution and graphics quality may produce different results, particularly on different machines!  Make a note of your simulator settings (resolution and graphics quality set on launch) and frames per second (FPS output to terminal by `drive_rover.py`) in your writeup when you submit the project so your reviewer can reproduce your results.**  
+My simulator settings is as follows.  
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+![alt text][image8]  
 
 
+Here are the results in autonomous node.  
 
-![alt text][image3]
+![alt text][image6]
+![alt text][image7]
+
+I wrote codes about picking rocks, but it's easily stuck when the rock is too close to obscale. So I closed it. I think there might be some navigation algorithm for rover to follow the path to rock, like A star. And it will improve the efficiency of seraching.  
+
 
 
